@@ -25,5 +25,5 @@ User to entitlement numbers can be randomized.
 A list of full names can be generated via <a href="http://www.github.com/smof/NameGenerator">NameGenerator</a>
 <br/>
 <br/>
-<b>Use as-is, not warranty.  Fork, copy, modify, distribute, as long as attribution is left in place</b>
+<b>Use as-is, no warranty.  Fork, copy, modify, distribute, as long as attribution is left in place</b>
 
