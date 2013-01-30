@@ -16,7 +16,8 @@ ENTITLEMENTS_PER_USER = 20 #valid if randomize = false. must be < entitlements.l
 RESOURCE="AD" #name of resource
 OUTPUT_FILE="#{RESOURCE}_generated_entitlements.csv"
 COMPLETED_USERS=[] #where all user arrays end up
-ENTITLEMENT_DELIMTER=";"
+MULTIVALUE_DELIMITER=";"
+COLUMN_SEPARATOR=","
 @processed_records = 0 #just for reporting
 #Globals and constants#######################################################################
 
@@ -86,13 +87,14 @@ end
 
 def create_random_entitlements
   
-  COMPLETED_USERS << "fullname,userid,entitlements"
+  COMPLETED_USERS << "fullname#{COLUMN_SEPARATOR}userid#{COLUMN_SEPARATOR}entitlements"
+  
   puts "Generating entitlements..."
   
   #names now contains fullname and uuid from create_ids
   @names.each do |name|
             
-        COMPLETED_USERS << "#{name},#{generated_entitlements}"
+        COMPLETED_USERS << "#{name}#{COLUMN_SEPARATOR}#{generated_entitlements}"
             
   end
   
@@ -112,7 +114,7 @@ def generated_entitlements
 
   processed_record ="." #just for STDERR print out
     
-  generated_entitlements = [] #init empty array per call to method
+  generated_entitlements = "" #init empty string per call to method
   
   if RANDOMIZE_NUMER_OF_ENTITLEMENTS == true
   
@@ -127,7 +129,7 @@ def generated_entitlements
       end	  
       
       @processed_records += 1
-      generated_entitlements << new_entitlement
+      generated_entitlements += "#{MULTIVALUE_DELIMITER}#{new_entitlement}"
                
 	  }
 	  
@@ -144,7 +146,7 @@ def generated_entitlements
       end   
       
       @processed_records += 1
-      generated_entitlements << new_entitlement
+      generated_entitlements += "#{MULTIVALUE_DELIMITER}#{new_entitlement}"
 	     
 	     
 	 }
