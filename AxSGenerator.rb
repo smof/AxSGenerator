@@ -85,6 +85,7 @@ end
 
 def create_random_entitlements
   
+  COMPLETED_USERS << "fullname,userid,entitlements"
   puts "Generating entitlements..."
   
   #names now contains fullname and uuid from create_ids
