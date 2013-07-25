@@ -9,11 +9,11 @@ require 'date'
 require 'csv'
 
 #Globals and constants#######################################################################
-INPUT_NAMES="names.dat" #one user per line in format "firstname lastname"
-INPUT_ENTITLEMENTS="entitlements.csv" #one entitlements per line
+INPUT_NAMES="1k_HR_Users.csv" #one userid per line
+INPUT_ENTITLEMENTS="sap_roles.csv" #one entitlement per line
 RANDOMIZE_NUMER_OF_ENTITLEMENTS = true #if false can set ENTITLEMENTS_PER_USER
-ENTITLEMENTS_PER_USER = 20 #valid if randomize = false. must be < entitlements.length otherwise defaults to total_entitlements * 0.6
-RESOURCE="AD" #name of resource
+ENTITLEMENTS_PER_USER = 5 #valid if randomize = false. must be < entitlements.length otherwise defaults to total_entitlements * 0.6
+RESOURCE="sap" #name of resource
 OUTPUT_FILE="#{RESOURCE}_generated_entitlements.csv"
 COMPLETED_USERS=[] #where all user arrays end up
 MULTIVALUE_DELIMITER=";"
@@ -22,23 +22,24 @@ COLUMN_SEPARATOR=","
 #Globals and constants#######################################################################
 
 #reads in full names file
-def read_names
+def read_ids
 
-  puts "Reading names file..."
+  puts "Reading ID's file..."
 
-  #iterate over csv of identies and ip's, each row is passed to row[] and each field in row passed to generate_entitlement
-  @names =[]
+  #iterate over csv of identies and push into array
+  @ids =[]
   CSV.foreach(INPUT_NAMES) do |row|
     
-    @names << row
+    @ids << row[0] #only want first entry in array line
         
   end
 
-  puts "Reading names file...FINISHED"
+  puts "Reading ID's file...FINISHED - #{@ids.length} processed"
   
 end
 
-#creates unique ids
+=begin
+#creates unique ids - deprecated
 def create_ids
       
   @ids =[] #unique ids
@@ -61,11 +62,12 @@ def create_ids
     @ids << user_id
            
     #add unique id then fullname to array for use later on...
-    name[0] + "," + user_id
+    name[0] + "#{COLUMN_SEPARATOR}" + user_id
                        
   end 
        
 end
+=end
 
 
 #suck entitlements list from CSV file
@@ -80,21 +82,21 @@ def read_entitlements
     
   end
 
-  puts "Reading entitlements file...FINISHED"	   
+  puts "Reading entitlements file...FINISHED - #{@entitlements.length} processed"	   
 
 end
 
 
 def create_random_entitlements
   
-  COMPLETED_USERS << "fullname#{COLUMN_SEPARATOR}userid#{COLUMN_SEPARATOR}entitlements"
-  
+  COMPLETED_USERS << "id#{COLUMN_SEPARATOR}entitlements"  
+
   puts "Generating entitlements..."
   
   #names now contains fullname and uuid from create_ids
-  @names.each do |name|
+  @ids.each do |id|
             
-        COMPLETED_USERS << "#{name}#{COLUMN_SEPARATOR}#{generated_entitlements}"
+        COMPLETED_USERS << "#{id}#{COLUMN_SEPARATOR}#{generated_entitlements}"
             
   end
   
@@ -118,37 +120,37 @@ def generated_entitlements
   
   if RANDOMIZE_NUMER_OF_ENTITLEMENTS == true
   
-	  1.upto(Kernel.rand(@entitlements.length)) {
+	  #only pull out up to half of all given entitlements
+	  1.upto(Kernel.rand(@entitlements.length * 0.5)) {
         
-      new_entitlement = get_entitlement
+   		   new_entitlement = get_entitlement
       
-      while generated_entitlements.include? new_entitlement
+		   while generated_entitlements.include? new_entitlement
         
-        new_entitlement = get_entitlement
+		        new_entitlement = get_entitlement
         
-      end	  
+		   end	  
       
-      @processed_records += 1
-      generated_entitlements += "#{MULTIVALUE_DELIMITER}#{new_entitlement}"
+	           @processed_records += 1
+                   generated_entitlements += "#{MULTIVALUE_DELIMITER}#{new_entitlement}"
                
 	  }
 	  
   else
 
-	 1.upto(ENTITLEMENTS_PER_USER < @entitlements.length ? ENTITLEMENTS_PER_USER : @entitlements.length*0.6) {
+	 1.upto(ENTITLEMENTS_PER_USER < @entitlements.length ? ENTITLEMENTS_PER_USER : @entitlements.length * 0.5) {
     
-      new_entitlement = get_entitlement
+	      new_entitlement = get_entitlement
       
-      while generated_entitlements.include? new_entitlement
+	      while generated_entitlements.include? new_entitlement
         
-        new_entitlement = get_entitlement
+        		new_entitlement = get_entitlement
         
-      end   
+	      end   
       
-      @processed_records += 1
-      generated_entitlements += "#{MULTIVALUE_DELIMITER}#{new_entitlement}"
-	     
-	     
+	      @processed_records += 1
+	      generated_entitlements += "#{MULTIVALUE_DELIMITER}#{new_entitlement}"
+		     
 	 }
   
   end
@@ -171,6 +173,7 @@ def write_entitlements
   new_entitlements_file = File.open(OUTPUT_FILE, 'w')
   COMPLETED_USERS.each do |user| new_entitlements_file.puts user.to_s end #basic puts but driven to open file
   new_entitlements_file.close #closes
+  #puts "Writing Entitlements...FINISHED - #{@processed_records} entitlements created for #{@ids.length} userids"
   puts "Writing Entitlements...FINISHED - #{@processed_records} entitlements created for #{@ids.length} userids"
   puts "Started - #{@started}" 
   puts "Ended - #{Time.now}"
@@ -182,8 +185,8 @@ end
 
 @started = Time.now
 read_entitlements
-read_names
-create_ids
+read_ids
+#create_ids
 create_random_entitlements
 write_entitlements
 
