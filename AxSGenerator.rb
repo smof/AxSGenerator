@@ -7,13 +7,14 @@
 require 'rubygems'
 require 'date'
 require 'csv'
+require 'set'
 
 #Globals and constants#######################################################################
 INPUT_NAMES="1k_HR_Users.csv" #one userid per line
-INPUT_ENTITLEMENTS="sap_roles.csv" #one entitlement per line
+INPUT_ENTITLEMENTS="db_entitlements.csv" #one entitlement per line
 RANDOMIZE_NUMER_OF_ENTITLEMENTS = true #if false can set ENTITLEMENTS_PER_USER
 ENTITLEMENTS_PER_USER = 5 #valid if randomize = false. must be < entitlements.length otherwise defaults to total_entitlements * 0.6
-RESOURCE="sap" #name of resource
+RESOURCE="mysql" #name of resource
 OUTPUT_FILE="#{RESOURCE}_generated_entitlements.csv"
 COMPLETED_USERS=[] #where all user arrays end up
 MULTIVALUE_DELIMITER=";"
@@ -24,7 +25,7 @@ COLUMN_SEPARATOR=","
 #reads in full names file
 def read_ids
 
-  puts "Reading ID's file..."
+  puts "Reading ID's file"
 
   #iterate over csv of identies and push into array
   @ids =[]
@@ -34,7 +35,7 @@ def read_ids
         
   end
 
-  puts "Reading ID's file...FINISHED - #{@ids.length} processed"
+  puts "Reading ID's file - FINISHED - #{@ids.length} processed"
   
 end
 
@@ -73,7 +74,7 @@ end
 #suck entitlements list from CSV file
 def read_entitlements
   
-  puts "Reading entitlements file..."
+  puts "Reading entitlements file"
 
   @entitlements =[]
   CSV.foreach(INPUT_ENTITLEMENTS) do |row|
@@ -82,7 +83,7 @@ def read_entitlements
     
   end
 
-  puts "Reading entitlements file...FINISHED - #{@entitlements.length} processed"	   
+  puts "Reading entitlements file - FINISHED - #{@entitlements.length} processed"	   
 
 end
 
@@ -91,7 +92,7 @@ def create_random_entitlements
   
   COMPLETED_USERS << "id#{COLUMN_SEPARATOR}entitlements"  
 
-  puts "Generating entitlements..."
+  puts "Generating entitlements"
   
   #names now contains fullname and uuid from create_ids
   @ids.each do |id|
@@ -116,29 +117,35 @@ def generated_entitlements
 
   processed_record ="." #just for STDERR print out
     
-  generated_entitlements = "" #init empty string per call to method
-  
+  #generated_entitlements = "" #init empty string per call to method
+  generated_entitlements = Set.new
+ 
+  entitlements_per_user = (@entitlements.length*0.6).floor
+
   if RANDOMIZE_NUMER_OF_ENTITLEMENTS == true
   
 	  #only pull out up to half of all given entitlements
-	  1.upto(Kernel.rand(@entitlements.length * 0.5)) {
-        
-   		   new_entitlement = get_entitlement
-      
-		   while generated_entitlements.include? new_entitlement
-        
-		        new_entitlement = get_entitlement
-        
-		   end	  
-      
+	  1.upto(Kernel.rand(entitlements_per_user).floor) {
+   	
+ 	           new_entitlement = get_entitlement
+			
+			Thread.new do      
+			
+				while generated_entitlements.include? new_entitlement
+	        
+			        	new_entitlement = get_entitlement
+        			
+		   		end	  
+			end
+
 	           @processed_records += 1
-                   generated_entitlements += "#{MULTIVALUE_DELIMITER}#{new_entitlement}"
+                   generated_entitlements << new_entitlement
                
 	  }
 	  
   else
 
-	 1.upto(ENTITLEMENTS_PER_USER < @entitlements.length ? ENTITLEMENTS_PER_USER : @entitlements.length * 0.5) {
+	 1.upto(ENTITLEMENTS_PER_USER < @entitlements.length ? ENTITLEMENTS_PER_USER : @entitlements.length * 0.6) {
     
 	      new_entitlement = get_entitlement
       
@@ -156,11 +163,12 @@ def generated_entitlements
   end
   
   STDERR.print processed_record
-  
-  #nasty hack to remove pre-fixed ",".  Need to stop , being added
-  generated_entitlements.slice!(0)
-    
-  return generated_entitlements
+
+  #convert array in to string  
+  string_entitlements = ""
+  generated_entitlements.each {|entitlement| string_entitlements += "#{entitlement}#{MULTIVALUE_DELIMITER}"} 
+  #remove last char which is delimiter
+  string_entitlements.slice!(0...-1)
     
 end
    
@@ -168,13 +176,13 @@ end
 #writes out to new entitlements file specific for that resource
 def write_entitlements
   
-  puts "\nWriting Entitlements..."
+  puts "\nWriting Entitlements"
 
   new_entitlements_file = File.open(OUTPUT_FILE, 'w')
   COMPLETED_USERS.each do |user| new_entitlements_file.puts user.to_s end #basic puts but driven to open file
   new_entitlements_file.close #closes
   #puts "Writing Entitlements...FINISHED - #{@processed_records} entitlements created for #{@ids.length} userids"
-  puts "Writing Entitlements...FINISHED - #{@processed_records} entitlements created for #{@ids.length} userids"
+  puts "Writing Entitlements - FINISHED - #{@processed_records} entitlements created for #{@ids.length} userids"
   puts "Started - #{@started}" 
   puts "Ended - #{Time.now}"
 
