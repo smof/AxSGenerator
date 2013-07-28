@@ -10,12 +10,12 @@ require 'csv'
 require 'set'
 
 #Globals and constants#######################################################################
-INPUT_NAMES="1k_HR_Users.csv" #one userid per line
-INPUT_ENTITLEMENTS="db_entitlements.csv" #one entitlement per line
+INPUT_NAMES="sample_data/1k_HR_Users.csv" #one userid per line
+INPUT_ENTITLEMENTS="sample_data/sap_roles.csv" #one entitlement per line
 RANDOMIZE_NUMER_OF_ENTITLEMENTS = true #if false can set ENTITLEMENTS_PER_USER
-ENTITLEMENTS_PER_USER = 5 #valid if randomize = false. must be < entitlements.length otherwise defaults to total_entitlements * 0.6
-RESOURCE="mysql" #name of resource
-OUTPUT_FILE="#{RESOURCE}_generated_entitlements.csv"
+ENTITLEMENTS_PER_USER = 1 #valid if randomize = false. must be < entitlements.length otherwise defaults to total_entitlements * 0.6
+RESOURCE="sap" #name of resource
+OUTPUT_FILE="axsgenerated_#{RESOURCE}.csv"
 COMPLETED_USERS=[] #where all user arrays end up
 MULTIVALUE_DELIMITER=";"
 COLUMN_SEPARATOR=","
@@ -156,7 +156,8 @@ def generated_entitlements
 	      end   
       
 	      @processed_records += 1
-	      generated_entitlements += "#{MULTIVALUE_DELIMITER}#{new_entitlement}"
+	      #generated_entitlements += "#{MULTIVALUE_DELIMITER}#{new_entitlement}"
+	      generated_entitlements << new_entitlement
 		     
 	 }
   
